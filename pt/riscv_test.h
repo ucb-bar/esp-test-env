@@ -85,80 +85,11 @@ _fail: \
         csrw tohost, TESTNUM;        \
 1:      j 1b;                        \
 _cont: \
-        csrr a0,impl;                \
-        li a1,IMPL_ROCKET;           \
-        beq a0,a1,_rocket_handler;   \
         vxcptcause x0;               \
         la a0,evac;                  \
         vxcptsave a0;                \
         vxcptrestore a0;             \
         j _exit;                     \
-                                     \
-_rocket_handler: \
-        la a0,regspill;              \
-        sd a2,0(a0);                 \
-        sd a3,8(a0);                 \
-        sd a4,16(a0);                \
-        sd a5,24(a0);                \
-        sd s0,32(a0);                \
-        sd s1,40(a0);                \
-        vgetcfg s0;                  \
-        vgetvl s1;                   \
-        la a0,evac;                  \
-        vxcptevac a0;                \
-        vsetcfg s0;                  \
-        vsetvl s1,s1;                \
-        vxcpthold;                   \
-        li a5,0;                     \
-_handler_loop: \
-        ld a1,0(a0);                 \
-        addi a0,a0,8;                \
-        blt a1,x0,_done;             \
-        srli a2,a1,32;               \
-        andi a2,a2,0x1;              \
-        beq a2,x0,_vcnt;             \
-_vcmd: \
-        beq a5,x0,_vcmd_skip;        \
-        venqcmd a4,a3;               \
-_vcmd_skip: \
-        li a5,1;                     \
-        move a4,a1;                  \
-        srli a3,a4,36;               \
-        andi a3,a3,0x1;              \
-_vimm1: \
-        srli a2,a4,35;               \
-        andi a2,a2,0x1;              \
-        beq a2,x0,_vimm2;            \
-        ld a1,0(a0);                 \
-        addi a0,a0,8;                \
-        venqimm1 a1,a3;              \
-_vimm2: \
-        srli a2,a4,34;               \
-        andi a2,a2,0x1;              \
-        beq a2,x0,_end;              \
-        ld a1,0(a0);                 \
-        addi a0,a0,8;                \
-        venqimm2 a1,a3;              \
-        j _end;                      \
-_vcnt: \
-        ld a2,0(a0);                 \
-        srli a2,a2,31;               \
-        andi a2,a2,0x2;              \
-        or a3,a3,a2;                 \
-        venqcnt a1,a3;               \
-_end: \
-        j _handler_loop;             \
-_done: \
-        beq a5,x0,_done_skip;        \
-        venqcmd a4,a3;               \
-_done_skip: \
-        la a0,regspill;              \
-        ld a2,0(a0);                 \
-        ld a3,8(a0);                 \
-        ld a4,16(a0);                \
-        ld a5,24(a0);                \
-        ld s0,32(a0);                \
-        ld s1,40(a0);                \
                                      \
 _exit: \
         csrs status,SR_PEI;          \

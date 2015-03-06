@@ -101,60 +101,9 @@ void handle_fault(unsigned long addr)
   __builtin___clear_cache(0,0);
 }
 
-static void do_vxcptrestore(long* where)
-{
-  vsetcfg(where[0]);
-  vsetvl(where[1]);
-
-  vxcpthold();
-
-  int idx = 2;
-  long dword, cmd, pf;
-  int first = 1;
-
-  while (1)
-  {
-    dword = where[idx++];
-
-    if (dword < 0) break;
-
-    if (dword_bit_cnt(dword))
-    {
-      venqcnt(dword, pf | (dword_bit_cmd(where[idx]) << 1));
-    }
-    else
-    {
-      if (!first)
-      {
-        venqcmd(cmd, pf);
-      }
-
-      first = 0;
-      cmd = dword;
-      pf = dword_bit_pf(cmd);
-
-      if (dword_bit_imm1(cmd))
-      {
-        venqimm1(where[idx++], pf);
-      }
-      if (dword_bit_imm2(cmd))
-      {
-        venqimm2(where[idx++], pf);
-      }
-    }
-  }
-  if (!first)
-  {
-    venqcmd(cmd, pf);
-  }
-}
-
 static void restore_vector(trapframe_t* tf)
 {
-  if (read_csr(impl) == IMPL_ROCKET)
-    do_vxcptrestore(tf->hwacha_opaque);
-  else
-    vxcptrestore(tf->hwacha_opaque);
+  vxcptrestore(tf->hwacha_opaque);
 }
 
 void handle_trap(trapframe_t* tf)

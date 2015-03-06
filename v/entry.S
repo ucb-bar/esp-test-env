@@ -154,14 +154,14 @@ trap_entry:
   # rocket currently doesn't support vxcptsave/vxcptrestore natively
   csrr  x3,impl 
   li    x4,IMPL_ROCKET
-  bne   x3,x4,3f
-  vgetcfg x4
-  STORE x4,0*REGBYTES(t0)
-  vgetvl x4
-  STORE x4,1*REGBYTES(t0)
-  addi  t0,t0,2*REGBYTES
-  vxcptevac t0
-  j     2f
+  #bne   x3,x4,3f
+  #vgetcfg x4
+  #STORE x4,0*REGBYTES(t0)
+  #vgetvl x4
+  #STORE x4,1*REGBYTES(t0)
+  #addi  t0,t0,2*REGBYTES
+  #vxcptevac t0
+  #j     2f
 
   # native vxcptsave
 3:vxcptsave t0
