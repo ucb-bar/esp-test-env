@@ -143,6 +143,24 @@ void handle_trap(trapframe_t* tf)
       long badvaddr = vxcptaux();
       handle_fault(badvaddr);
     }
+    else if(tf->hwacha_cause == HWACHA_CAUSE_ILLEGAL_CFG){
+      assert(!"hwacha_ill_cfg");
+    else if(tf->hwacha_cause == HWACHA_CAUSE_ILLEGAL_INSTRUCTION){
+      assert(!"hwacha_ill_instr");
+    else if(tf->hwacha_cause == HWACHA_CAUSE_PRIVILEGED_INSTRUCTION){
+      assert(!"hwacha_priv_instr");
+    else if(tf->hwacha_cause == HWACHA_CAUSE_TVEC_ILLEGAL_REGID){
+      assert(!"hwacha_tvec_ill_regid");
+    else if(tf->hwacha_cause == HWACHA_CAUSE_VF_MISALIGNED_FETCH){
+      assert(!"hwacha_vf_misalign_fetch");
+    else if(tf->hwacha_cause == HWACHA_CAUSE_VF_ILLEGAL_INSTRUCTION){
+      assert(!"hwacha_vf_ill_instr");
+    else if(tf->hwacha_cause == HWACHA_CAUSE_VF_ILLEGAL_REGID){
+      assert(!"hwacha_vf_ill_regid");
+    else if(tf->hwacha_cause == HWACHA_CAUSE_MISALIGNED_LOAD){
+      assert(!"hwacha_misalign_load");
+    else if(tf->hwacha_cause == HWACHA_CAUSE_MISALIGNED_STORE){
+      assert(!"hwacha_misalign_store");
     else
       assert(!"unexpected interrupt");
   }
