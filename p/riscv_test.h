@@ -90,11 +90,8 @@
 #define RVTEST_FP_ENABLE                                                \
   li a0, SSTATUS_FS & (SSTATUS_FS >> 1);                                \
   csrs sstatus, a0;                                                     \
-  csrr a1, sstatus;                                                     \
-  and a0, a0, a1;                                                       \
-  bnez a0, 2f;                                                          \
-  RVTEST_PASS;                                                          \
-2:fssr x0;                                                              \
+test_fpu_presence:                                                      \
+  fssr x0;                                                              \
 
 #define RVTEST_VEC_ENABLE                                               \
   li a0, SSTATUS_XS & (SSTATUS_XS >> 1);                                \
@@ -119,18 +116,23 @@
 #define RVTEST_CODE_BEGIN                                               \
         .text;                                                          \
         .align  6;                                                      \
+        .weak stvec_handler;                                            \
+        .weak mtvec_handler;                                            \
+        .weak test_fpu_presence;                                        \
 tvec_user:                                                              \
         EXTRA_TVEC_USER;                                                \
+        /* test whether the test came from pass/fail */                 \
         la t5, ecall;                                                   \
         csrr t6, mepc;                                                  \
         beq t5, t6, write_tohost;                                       \
-        li t5, 0xbadbad0;                                               \
-        csrr t6, stvec;                                                 \
-        bne t5, t6, 2f;                                                 \
-        ori TESTNUM, TESTNUM, 1337; /* some other exception occurred */ \
-        write_tohost: csrw tohost, TESTNUM;                             \
-        j write_tohost;                                                 \
-        2: j mrts_routine;                                              \
+        /* test whether the stvec_handler target exists */              \
+        la t5, stvec_handler;                                           \
+        bnez t5, mrts_routine;                                          \
+        /* test whether the mtvec_handler target exists */              \
+        la t5, mtvec_handler;                                           \
+        bnez t5, mtvec_handler;                                         \
+        /* some other exception occurred */                             \
+        j other_exception;                                              \
         .align  6;                                                      \
 tvec_supervisor:                                                        \
         EXTRA_TVEC_SUPERVISOR;                                          \
@@ -150,23 +152,36 @@ tvec_supervisor:                                                        \
         .align  6;                                                      \
 tvec_hypervisor:                                                        \
         EXTRA_TVEC_HYPERVISOR;                                          \
-        RVTEST_FAIL; /* no hypervisor */                                \
+        /* renting some space out here */                               \
+  other_exception:                                                      \
+        csrr t6, mepc;                                                  \
+        la t5, test_fpu_presence;                                       \
+        beqz t5, 1f;                                                    \
+        bne t5, t6, 1f;                                                 \
+        RVTEST_PASS;                                                    \
+  1:    ori TESTNUM, TESTNUM, 1337; /* some other exception occurred */ \
+  write_tohost:                                                         \
+        csrw tohost, TESTNUM;                                           \
+        j write_tohost;                                                 \
         .align  6;                                                      \
 tvec_machine:                                                           \
         EXTRA_TVEC_MACHINE;                                             \
-        .weak mtvec;                                                    \
         la t5, ecall;                                                   \
         csrr t6, mepc;                                                  \
         beq t5, t6, write_tohost;                                       \
-        la t5, mtvec;                                                   \
-1:      beqz t5, 1b;                                                    \
-        j mtvec;                                                        \
+        la t5, mtvec_handler;                                           \
+        bnez t5, mtvec_handler;                                         \
+        j other_exception;                                              \
         .align  6;                                                      \
         .globl _start;                                                  \
 _start:                                                                 \
         RISCV_MULTICORE_DISABLE;                                        \
-        li t0, 0xbadbad0; csrw stvec, t0;                               \
-        li t0, MSTATUS_PRV1; csrc mstatus, t0;                          \
+        la t0, stvec_handler;                                           \
+        beqz t0, skip_set_stvec;                                        \
+        csrw stvec, t0;                                                 \
+  skip_set_stvec:                                                       \
+        li t0, MSTATUS_PRV1 | MSTATUS_PRV2 | MSTATUS_IE1 | MSTATUS_IE2; \
+        csrc mstatus, t0;                                               \
         init;                                                           \
         EXTRA_INIT;                                                     \
         EXTRA_INIT_TIMER;                                               \
