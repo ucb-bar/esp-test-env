@@ -12,10 +12,6 @@
 #undef RVTEST_FP_ENABLE
 #define RVTEST_FP_ENABLE fssr x0
 
-#undef RVTEST_RV64UV
-#define RVTEST_RV64UV                                                   \
-        RVTEST_RV64UF
-
 #undef RVTEST_CODE_BEGIN
 #define RVTEST_CODE_BEGIN                                               \
         .text;                                                          \
@@ -47,15 +43,6 @@ userstart:                                                              \
 //-----------------------------------------------------------------------
 // Supervisor mode definitions and macros
 //-----------------------------------------------------------------------
-
-#define dword_bit_cmd(dw) ((dw >> 32) & 0x1)
-#define dword_bit_cnt(dw) (!dword_bit_cmd(dw))
-#define dword_bit_imm1(dw) ((dw >> 35) & 0x1)
-#define dword_bit_imm2(dw) ((dw >> 34) & 0x1)
-#define dword_bit_pf(dw) ((dw >> 36) & 0x1)
-
-#define fence() ({ \
-          asm volatile ("fence" ::: "memory"); })
 
 #define vxcptkill() ({ \
           asm volatile ("vxcptkill"); })

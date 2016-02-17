@@ -191,9 +191,10 @@ void handle_trap(trapframe_t* tf)
   else
     assert(!"unexpected exception");
 
-out:
+  out:
   if (!(tf->sr & SSTATUS_PS) && (tf->sr & SSTATUS_XS))
     restore_vector(tf);
+
   pop_tf(tf);
 }
 
