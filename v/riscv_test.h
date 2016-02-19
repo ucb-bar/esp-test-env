@@ -12,6 +12,10 @@
 #undef RVTEST_FP_ENABLE
 #define RVTEST_FP_ENABLE fssr x0
 
+#undef RVTEST_RV64UV
+#define RVTEST_RV64UV                                                   \
+        RVTEST_RV64UF
+
 #undef RVTEST_CODE_BEGIN
 #define RVTEST_CODE_BEGIN                                               \
         .text;                                                          \
