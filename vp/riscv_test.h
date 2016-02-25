@@ -16,11 +16,26 @@
 userstart:                                                              \
         la t0, begin_data;                                              \
         la t1, end_data;                                                \
-prefault:                                                               \
+prefault_data:                                                          \
         lb t2, 0(t0); /* load each data byte to fault before the test*/ \
         addi t0, t0, 1;                                                 \
-        blt t0, t1, prefault;                                           \
+        blt t0, t1, prefault_data;                                      \
+        la t0, userstart;                                               \
+        la t1, end_inst;                                                \
+prefault_inst:                                                          \
+        lb t2, 0(t0); /* load each inst byte to fault before the test*/ \
+        addi t0, t0, 1;                                                 \
+        blt t0, t1, prefault_inst;                                      \
         init
+
+//-----------------------------------------------------------------------
+// End Macro
+//-----------------------------------------------------------------------
+#undef RVTEST_CODE_END
+#define RVTEST_CODE_END                                                 \
+.global end_inst; end_inst:                                             \
+ecall:  ecall;                                                          \
+        j ecall
 
 //-----------------------------------------------------------------------
 // Data Section Macro
