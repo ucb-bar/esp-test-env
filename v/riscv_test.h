@@ -72,8 +72,13 @@ userstart:                                                              \
 #define PGSHIFT 12
 #define PGSIZE (1UL << PGSHIFT)
 
-#define SIZEOF_TRAPFRAME_T 20776
-#define SIZEOF_TRAPFRAME_T_SCALAR 296
+#ifdef __riscv64
+# define SIZEOF_TRAPFRAME_T 20776
+# define SIZEOF_TRAPFRAME_T_SCALAR 296
+#else
+# define SIZEOF_TRAPFRAME_T 152
+# define SIZEOF_TRAPFRAME_T_SCALAR 152
+#endif
 
 #ifndef __ASSEMBLER__
 
@@ -133,6 +138,7 @@ typedef unsigned long pte_t;
 #define PTES_PER_PT (1UL << RISCV_PGLEVEL_BITS)
 #define MEGAPAGE_SIZE (PTES_PER_PT * PGSIZE)
 
+#ifdef __riscv64
 typedef struct
 {
   long gpr[32];
@@ -143,6 +149,18 @@ typedef struct
   long hwacha_cause;
   long hwacha_opaque[2560];
 } trapframe_t;
+#else
+typedef struct
+{
+  long gpr[32];
+  long sr;
+  long epc;
+  long badvaddr;
+  long cause;
+  long hwacha_cause;
+  long hwacha_opaque[1];
+} trapframe_t;
+#endif
 #endif
 
 #endif
