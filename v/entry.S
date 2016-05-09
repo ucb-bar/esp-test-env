@@ -10,7 +10,7 @@
 # define REGBYTES 4
 #endif
 
-#define STACK_TOP (_end + 131072)
+#define STACK_TOP (_end + 4096)
 
   .section ".text.init","ax",@progbits
 
@@ -22,17 +22,15 @@ nmi_vector:
   j wtf
 
 trap_vector:
-  # we can safely clobber caller-saved registers here, because we were
-  # either invoked via do_tohost or we are about to bail out
-  csrr t0, mcause
-  li t1, CAUSE_SUPERVISOR_ECALL
-  beq t0, t1, handle_tohost
-  li t1, CAUSE_MACHINE_ECALL
-  beq t0, t1, handle_tohost
   j wtf
 
 handle_reset:
+  la t0, trap_vector
+  csrw mtvec, t0
   la sp, STACK_TOP - SIZEOF_TRAPFRAME_T
+  csrr t0, mhartid
+  slli t0, t0, 12
+  add sp, sp, t0
   csrw mscratch, sp
   li a1, 1337
   la a0, userstart
@@ -73,7 +71,7 @@ pop_tf:
   LOAD  x30,30*REGBYTES(a0)
   LOAD  x31,31*REGBYTES(a0)
   LOAD  a0,10*REGBYTES(a0)
-  eret
+  sret
 
   .global  trap_entry
 trap_entry:
@@ -152,25 +150,3 @@ trap_entry:
   addi  t0,t0,2*REGBYTES
   vxcptevac t0
 2:j handle_trap
-
-  .global do_tohost
-do_tohost:
-  ecall
-  ret
-
-handle_tohost:
-1:csrrw t0, mtohost, a0
-  bnez t0, 1b
-
-1:csrrw t0, mfromhost, x0
-  bnez t0, 1b
-
-  csrr t0, mepc
-  addi t0, t0, 4
-  csrw mepc, t0
-  eret
-
-wtf:
-  li a0, 841
-1:csrw mtohost, a0
-  j 1b
