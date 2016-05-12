@@ -113,7 +113,7 @@
         csrw mepc, t5;                                                  \
         li a0, MSTATUS_MPP & (MSTATUS_MPP >> 1);                        \
         csrs mstatus, a0;                                               \
-        eret;                                                           \
+        mret;                                                           \
   skip_vector_cause_aux:                                                \
         j other_exception /* No interrupts should occur */
 
