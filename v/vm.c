@@ -59,18 +59,22 @@ void wtf()
   terminate(3); \
 } while(0)
 
-typedef struct { pte_t addr; void* next; } freelist_t;
-
-pte_t l1pt[PTES_PER_PT] __attribute__((aligned(PGSIZE)));
-pte_t user_l2pt[PTES_PER_PT] __attribute__((aligned(PGSIZE)));
-pte_t kernel_l2pt[PTES_PER_PT] __attribute__((aligned(PGSIZE)));
+#define l1pt pt[0]
+#define user_l2pt pt[1]
+#define kernel_l2pt pt[2]
 #ifdef __riscv64
-pte_t user_l3pt[PTES_PER_PT] __attribute__((aligned(PGSIZE)));
-pte_t kernel_l3pt[PTES_PER_PT] __attribute__((aligned(PGSIZE)));
+# define NPT 5
+# define user_l3pt pt[3]
+# define kernel_l3pt pt[4]
 #else
+# define NPT 3
 # define user_l3pt user_l2pt
 # define kernel_l3pt kernel_l2pt
 #endif
+pte_t pt[NPT][PTES_PER_PT] __attribute__((aligned(PGSIZE)));
+
+typedef struct { pte_t addr; void* next; } freelist_t;
+
 freelist_t user_mapping[MAX_TEST_PAGES];
 freelist_t freelist_nodes[MAX_TEST_PAGES];
 freelist_t *freelist_head, *freelist_tail;
@@ -88,7 +92,7 @@ void printhex(uint64_t x)
   cputstring(str);
 }
 
-void evict(unsigned long addr)
+static void evict(unsigned long addr)
 {
   assert(addr >= PGSIZE && addr < MAX_TEST_PAGES * PGSIZE);
   addr = addr/PGSIZE*PGSIZE;
@@ -96,8 +100,8 @@ void evict(unsigned long addr)
   freelist_t* node = &user_mapping[addr/PGSIZE];
   if (node->addr)
   {
-    // check referenced and dirty bits
-    assert(user_l3pt[addr/PGSIZE] & PTE_R);
+    // check accessed and dirty bits
+    assert(user_l3pt[addr/PGSIZE] & PTE_A);
     if (memcmp((void*)addr, uva2kva(addr), PGSIZE)) {
       assert(user_l3pt[addr/PGSIZE] & PTE_D);
       memcpy((void*)addr, uva2kva(addr), PGSIZE);
@@ -126,7 +130,7 @@ void handle_fault(unsigned long addr)
   if (freelist_head == freelist_tail)
     freelist_tail = 0;
 
-  user_l3pt[addr/PGSIZE] = (node->addr >> PGSHIFT << PTE_PPN_SHIFT) | PTE_V | PTE_TYPE_URWX_SRW;
+  user_l3pt[addr/PGSIZE] = (node->addr >> PGSHIFT << PTE_PPN_SHIFT) | PTE_V | PTE_U | PTE_R | PTE_W | PTE_X;
   asm volatile ("sfence.vm");
 
   assert(user_mapping[addr/PGSIZE].addr == 0);
@@ -162,8 +166,6 @@ void handle_trap(trapframe_t* tf)
 
     terminate(n);
   }
-  else if (tf->cause == CAUSE_FAULT_FETCH)
-    handle_fault(tf->epc);
   else if (tf->cause == CAUSE_ILLEGAL_INSTRUCTION)
   {
     assert(tf->epc % 4 == 0);
@@ -177,7 +179,7 @@ void handle_trap(trapframe_t* tf)
       assert(!"illegal instruction");
     tf->epc += 4;
   }
-  else if (tf->cause == CAUSE_FAULT_LOAD || tf->cause == CAUSE_FAULT_STORE)
+  else if (tf->cause == CAUSE_FAULT_FETCH || tf->cause == CAUSE_FAULT_LOAD || tf->cause == CAUSE_FAULT_STORE)
     handle_fault(tf->badvaddr);
   else if ((long)tf->cause < 0 && (uint8_t)tf->cause == IRQ_COP)
   {
@@ -247,12 +249,12 @@ void vm_boot(long test_addr, long seed)
 #endif
   write_csr(sptbr, (uintptr_t)l1pt >> PGSHIFT);
   // map kernel to uppermost megapage
-  l1pt[PTES_PER_PT-1] = ((pte_t)kernel_l2pt >> PGSHIFT << PTE_PPN_SHIFT) | PTE_V | PTE_TYPE_TABLE;
+  l1pt[PTES_PER_PT-1] = ((pte_t)kernel_l2pt >> PGSHIFT << PTE_PPN_SHIFT) | PTE_V;
   // map user to lowermost megapage
-  l1pt[0] = ((pte_t)user_l2pt >> PGSHIFT << PTE_PPN_SHIFT) | PTE_V | PTE_TYPE_TABLE;
+  l1pt[0] = ((pte_t)user_l2pt >> PGSHIFT << PTE_PPN_SHIFT) | PTE_V;
 #ifdef __riscv64
-  kernel_l2pt[PTES_PER_PT-1] = ((pte_t)kernel_l3pt >> PGSHIFT << PTE_PPN_SHIFT) | PTE_V | PTE_TYPE_TABLE;
-  user_l2pt[0] = ((pte_t)user_l3pt >> PGSHIFT << PTE_PPN_SHIFT) | PTE_V | PTE_TYPE_TABLE;
+  kernel_l2pt[PTES_PER_PT-1] = ((pte_t)kernel_l3pt >> PGSHIFT << PTE_PPN_SHIFT) | PTE_V;
+  user_l2pt[0] = ((pte_t)user_l3pt >> PGSHIFT << PTE_PPN_SHIFT) | PTE_V;
 #endif
 
   // set up supervisor trap handling
@@ -280,7 +282,7 @@ void vm_boot(long test_addr, long seed)
     freelist_nodes[i].next = pa2kva(&freelist_nodes[i+1]);
     seed = LFSR_NEXT(seed);
 
-    kernel_l3pt[i] = ((i + DRAM_BASE/RISCV_PGSIZE) << PTE_PPN_SHIFT) | PTE_V | PTE_TYPE_SRWX;
+    kernel_l3pt[i] = ((i + DRAM_BASE/RISCV_PGSIZE) << PTE_PPN_SHIFT) | PTE_V | PTE_R | PTE_W | PTE_X;
   }
   freelist_nodes[MAX_TEST_PAGES-1].next = 0;
 

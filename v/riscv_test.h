@@ -19,7 +19,6 @@
 #undef RVTEST_CODE_BEGIN
 #define RVTEST_CODE_BEGIN                                               \
         .text;                                                          \
-        .align  13;                                                     \
         .global userstart;                                              \
 userstart:                                                              \
         init

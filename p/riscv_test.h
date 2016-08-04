@@ -75,6 +75,8 @@
 #define RVTEST_ENABLE_SUPERVISOR                                        \
   li a0, MSTATUS_MPP & (MSTATUS_MPP >> 1);                              \
   csrs mstatus, a0;                                                     \
+  li a0, SIP_SSIP | SIP_STIP;                                           \
+  csrs mideleg, a0;                                                     \
 
 #define RVTEST_ENABLE_MACHINE                                           \
   li a0, MSTATUS_MPP;                                                   \
@@ -126,6 +128,7 @@
 _start:                                                                 \
         /* reset vector */                                              \
         j reset_vector;                                                 \
+        .align 2;                                                       \
 trap_vector:                                                            \
         /* test whether the test came from pass/fail */                 \
         csrr t5, mcause;                                                \
@@ -157,6 +160,9 @@ reset_vector:                                                           \
         li TESTNUM, 0;                                                  \
         la t0, trap_vector;                                             \
         csrw mtvec, t0;                                                 \
+        csrwi medeleg, 0;                                               \
+        csrwi mideleg, 0;                                               \
+        csrwi mie, 0;                                                   \
         /* if an stvec_handler is defined, delegate exceptions to it */ \
         la t0, stvec_handler;                                           \
         beqz t0, 1f;                                                    \
