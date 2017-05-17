@@ -68,13 +68,12 @@ userstart:                                                              \
 #define PGSHIFT 12
 #define PGSIZE (1UL << PGSHIFT)
 
-#ifdef __riscv64
-# define SIZEOF_TRAPFRAME_T 20776
-# define SIZEOF_TRAPFRAME_T_SCALAR 296
+#if __riscv_xlen == 64
+# define SIZEOF_TRAPFRAME_T ((__riscv_xlen / 8) * (36+2+2559))
 #else
-# define SIZEOF_TRAPFRAME_T 152
-# define SIZEOF_TRAPFRAME_T_SCALAR 152
+# define SIZEOF_TRAPFRAME_T ((__riscv_xlen / 8) * (36+2))
 #endif
+# define SIZEOF_TRAPFRAME_T_SCALAR ((__riscv_xlen / 8) * (36+2))
 
 #ifndef __ASSEMBLER__
 
@@ -134,7 +133,7 @@ typedef unsigned long pte_t;
 #define PTES_PER_PT (1UL << RISCV_PGLEVEL_BITS)
 #define MEGAPAGE_SIZE (PTES_PER_PT * PGSIZE)
 
-#ifdef __riscv64
+#if __riscv_xlen == 64
 typedef struct
 {
   long gpr[32];
