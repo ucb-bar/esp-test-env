@@ -207,7 +207,7 @@ void handle_trap(trapframe_t* tf)
         tf->hwacha_cause == HWACHA_CAUSE_FAULT_STORE)
     {
       long badvaddr = vxcptaux();
-      handle_fault(badvaddr);
+      handle_fault(badvaddr, tf->hwacha_cause);
     }
     else if(tf->hwacha_cause == HWACHA_CAUSE_ILLEGAL_CFG)
       assert(!"hwacha_ill_cfg");

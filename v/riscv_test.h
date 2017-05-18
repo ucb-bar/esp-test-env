@@ -73,7 +73,7 @@ userstart:                                                              \
 #else
 # define SIZEOF_TRAPFRAME_T ((__riscv_xlen / 8) * (36+2))
 #endif
-# define SIZEOF_TRAPFRAME_T_SCALAR ((__riscv_xlen / 8) * (36+2))
+# define SIZEOF_TRAPFRAME_T_SCALAR ((__riscv_xlen / 8) * (36+1))
 
 #ifndef __ASSEMBLER__
 
