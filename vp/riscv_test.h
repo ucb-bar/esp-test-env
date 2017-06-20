@@ -18,6 +18,7 @@ userstart:                                                              \
         la t1, end_data;                                                \
 prefault_data:                                                          \
         lb t2, 0(t0); /* load each data byte to fault before the test*/ \
+        sb t2, 0(t0); /* store each data byte to give us write perms*/  \
         addi t0, t0, 1;                                                 \
         blt t0, t1, prefault_data;                                      \
         la t0, userstart;                                               \
