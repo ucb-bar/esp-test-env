@@ -155,17 +155,10 @@ void handle_fault(uintptr_t addr, uintptr_t cause)
 
   user_l3pt[addr/PGSIZE] = new_pte;
   flush_page(addr);
-
-  __builtin___clear_cache(0,0);
 }
 
 static void do_vxcptrestore(long* where)
 {
-  vsetcfg(where[0]);
-  vsetvl(where[1]);
-
-  vxcpthold(&where[2]);
-
   // no hwachav4 restore yet
 }
 
@@ -199,15 +192,29 @@ void handle_trap(trapframe_t* tf)
     tf->epc += 4;
   }
   else if (tf->cause == CAUSE_FETCH_PAGE_FAULT || tf->cause == CAUSE_LOAD_PAGE_FAULT || tf->cause == CAUSE_STORE_PAGE_FAULT)
+  {
     handle_fault(tf->badvaddr, tf->cause);
+    __builtin___clear_cache(0,0);
+  }
   else if ((long)tf->cause < 0 && (uint8_t)tf->cause == IRQ_COP)
   {
-    if (tf->hwacha_cause == HWACHA_CAUSE_VF_FAULT_FETCH ||
-        tf->hwacha_cause == HWACHA_CAUSE_FAULT_LOAD ||
+    if (tf->hwacha_cause == HWACHA_CAUSE_FAULT_LOAD ||
         tf->hwacha_cause == HWACHA_CAUSE_FAULT_STORE)
     {
-      long badvaddr = vxcptaux();
+      long badvaddr = vxcptval();
       handle_fault(badvaddr, tf->hwacha_cause);
+      vfence_vma();
+      // FIXME: All fences prior to vxcptret would deadlock indefinitely
+      // since the rocc busy signal remains asserted while Hwacha is
+      // held in an exception state.
+      vxcptret();
+    }
+    else if (tf->hwacha_cause == HWACHA_CAUSE_VF_FAULT_FETCH)
+    {
+      long epc = vxcptpc();
+      handle_fault(epc, tf->hwacha_cause);
+      vfence_vma();
+      vxcptret();
     }
     else if(tf->hwacha_cause == HWACHA_CAUSE_ILLEGAL_CFG)
       assert(!"hwacha_ill_cfg");
@@ -305,7 +312,7 @@ void vm_boot(uintptr_t test_addr)
       (1 << IRQ_COP));
   // FPU on; accelerator on; allow supervisor access to user memory access
   write_csr(mstatus, MSTATUS_FS | MSTATUS_XS);
-  write_csr(mie, 0);
+  write_csr(mie, (1 << IRQ_COP));
 
   random = 1 + (random % MAX_TEST_PAGES);
   freelist_head = pa2kva((void*)&freelist_nodes[0]);

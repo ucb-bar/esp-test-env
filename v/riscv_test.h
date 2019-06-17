@@ -44,23 +44,14 @@ userstart:                                                              \
 // Supervisor mode definitions and macros
 //-----------------------------------------------------------------------
 
+#define vxcptret() ({ \
+          asm volatile ("vxcptret"); })
+
 #define vxcptkill() ({ \
           asm volatile ("vxcptkill"); })
 
-#define vxcpthold(addr) ({ \
-          asm volatile ("vxcpthold %0" : : "r"(addr)); })
-
-#define venqcmd(bits, pf) ({ \
-          asm volatile ("venqcmd %0,%1" : : "r"(bits), "r"(pf)); })
-
-#define venqimm1(bits, pf) ({ \
-          asm volatile ("venqimm1 %0,%1" : : "r"(bits), "r"(pf)); })
-
-#define venqimm2(bits, pf) ({ \
-          asm volatile ("venqimm2 %0,%1" : : "r"(bits), "r"(pf)); })
- 
-#define venqcnt(bits, pf) ({ \
-          asm volatile ("venqcnt %0,%1" :: "r"(bits), "r"(pf)); })
+#define vfence_vma() ({ \
+          asm volatile ("vfence.vma"); })
 
 #define MAX_TEST_PAGES 63 // this must be the period of the LFSR below
 #define LFSR_NEXT(x) (((((x)^((x)>>1)) & 1) << 5) | ((x) >> 1))
@@ -68,11 +59,7 @@ userstart:                                                              \
 #define PGSHIFT 12
 #define PGSIZE (1UL << PGSHIFT)
 
-#if __riscv_xlen == 64
-# define SIZEOF_TRAPFRAME_T ((__riscv_xlen / 8) * (36+2+2559))
-#else
-# define SIZEOF_TRAPFRAME_T ((__riscv_xlen / 8) * (36+2))
-#endif
+# define SIZEOF_TRAPFRAME_T ((__riscv_xlen / 8) * (36+3))
 # define SIZEOF_TRAPFRAME_T_SCALAR ((__riscv_xlen / 8) * (36+1))
 
 #ifndef __ASSEMBLER__
@@ -101,10 +88,10 @@ static inline long vgetvl()
   asm volatile ("vgetvl %0" : "=r"(vl) :);
 }
 
-static inline long vxcptaux()
+static inline long vxcptval()
 {
   long aux;
-  asm volatile ("vxcptaux %0" : "=r"(aux) :);
+  asm volatile ("vxcptval %0" : "=r"(aux) :);
   return aux;
 }
 
@@ -115,14 +102,11 @@ static inline long vxcptcause()
   return cause;
 }
 
-static inline void vxcptrestore(long* mem)
+static inline long vxcptpc()
 {
-  asm volatile("vxcptrestore %0" : : "r"(mem) : "memory");
-}
-
-static inline void vxcptevac(long* mem)
-{
-  asm volatile ("vxcptevac %0" : : "r"(mem));
+  long epc;
+  asm volatile ("vxcptpc %0" : "=r"(epc) :);
+  return epc;
 }
 
 typedef unsigned long pte_t;
@@ -133,7 +117,6 @@ typedef unsigned long pte_t;
 #define PTES_PER_PT (1UL << RISCV_PGLEVEL_BITS)
 #define MEGAPAGE_SIZE (PTES_PER_PT * PGSIZE)
 
-#if __riscv_xlen == 64
 typedef struct
 {
   long gpr[32];
@@ -142,20 +125,8 @@ typedef struct
   long badvaddr;
   long cause;
   long hwacha_cause;
-  long hwacha_opaque[2560];
+  long hwacha_opaque[2];
 } trapframe_t;
-#else
-typedef struct
-{
-  long gpr[32];
-  long sr;
-  long epc;
-  long badvaddr;
-  long cause;
-  long hwacha_cause;
-  long hwacha_opaque[1];
-} trapframe_t;
-#endif
 #endif
 
 #endif

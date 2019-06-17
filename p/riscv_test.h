@@ -135,7 +135,7 @@
         beqz t5, skip_vector_cause_aux;                                 \
         vxcptcause t5;                                                  \
         csrw scause, t5;                                                \
-        vxcptaux t5;                                                    \
+        vxcptval t5;                                                    \
         csrw sbadaddr, t5;                                              \
         csrr t5, stvec;                                                 \
         csrw mepc, t5;                                                  \

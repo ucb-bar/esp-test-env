@@ -146,6 +146,4 @@ trap_entry:
   STORE x4,0*REGBYTES(t0)
   vgetvl x4
   STORE x4,1*REGBYTES(t0)
-  addi  t0,t0,2*REGBYTES
-  vxcptevac t0
 2:j handle_trap
