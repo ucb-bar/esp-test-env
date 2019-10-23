@@ -12,6 +12,10 @@
 #define RVTEST_CODE_BEGIN                                               \
         .text;                                                          \
         .align  13;                                                     \
+        .global extra_boot;                                             \
+extra_boot:                                                             \
+        EXTRA_INIT                                                      \
+        ret;                                                            \
         .global userstart;                                              \
 userstart:                                                              \
         la t0, begin_data;                                              \
