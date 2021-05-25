@@ -178,7 +178,7 @@ void handle_fault(uintptr_t addr, uintptr_t cause)
 static void do_vxcptrestore(long* where)
 {
   vsetcfg(where[0]);
-  vsetvl(where[1]);
+  hvsetvl(where[1]);
 
   vxcpthold(&where[2]);
 
