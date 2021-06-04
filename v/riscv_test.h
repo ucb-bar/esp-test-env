@@ -94,10 +94,10 @@ static inline void vsetcfg(long cfg)
   asm volatile ("vsetcfg %0" : : "r"(cfg));
 }
 
-static inline void hvsetvl(long vl)
+static inline void vsetvl(long vl)
 {
   long __tmp;
-  asm volatile ("hvsetvl %0,%1" : "=r"(__tmp) : "r"(vl));
+  asm volatile ("vsetvl %0,%1" : "=r"(__tmp) : "r"(vl));
 }
 
 static inline long vgetcfg()
