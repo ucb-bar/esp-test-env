@@ -47,7 +47,12 @@ ecall:  ecall;                                                          \
 //-----------------------------------------------------------------------
 
 #undef RVTEST_DATA_BEGIN
-#define RVTEST_DATA_BEGIN .global begin_data; begin_data:
+#define RVTEST_DATA_BEGIN                                               \
+        .pushsection .tohost,"aw",@progbits;                            \
+        .align 6; .global tohost; tohost: .dword 0;                     \
+        .align 6; .global fromhost; fromhost: .dword 0;                 \
+        .popsection;                                                    \
+        .align 4; .global begin_data; begin_data:
 
 #undef RVTEST_DATA_END
 #define RVTEST_DATA_END .global end_data; end_data:

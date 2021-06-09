@@ -12,9 +12,17 @@
 #undef RVTEST_FP_ENABLE
 #define RVTEST_FP_ENABLE fssr x0
 
+#ifdef USE_HWACHA
 #undef RVTEST_RV64UV
 #define RVTEST_RV64UV                                                   \
         RVTEST_RV64UF
+#endif
+
+// Upstream vector enable 
+#undef RVTEST_VECTOR_ENABLE
+#define RVTEST_VECTOR_ENABLE                                            \
+  csrwi fcsr, 0;                                                        \
+  csrwi vcsr, 0;
 
 #undef RVTEST_CODE_BEGIN
 #define RVTEST_CODE_BEGIN                                               \
